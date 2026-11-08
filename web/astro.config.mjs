@@ -9,7 +9,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   integrations: [qwikdev()],
 
-  vite: {
+  vite: { envDir: false,
     plugins: [tailwindcss()]
   }
 });
