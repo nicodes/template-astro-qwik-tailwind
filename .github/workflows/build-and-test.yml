@@ -1,0 +1,53 @@
+name: Build and test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Exact merged source commit
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build and test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Verify source revision
+        if: inputs.source != ''
+        env:
+          EXPECTED_SOURCE: ${{ inputs.source }}
+        run: test "$GITHUB_SHA" = "$EXPECTED_SOURCE"
+
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: '22'
+
+      - name: Install pinned Bun
+        uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db
+
+      - name: Install locked dependencies
+        working-directory: web
+        run: mise exec -- bun install --frozen-lockfile
+
+      - name: Build site
+        working-directory: web
+        run: mise exec -- bun run build
